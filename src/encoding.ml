@@ -67,14 +67,16 @@ end
 
 module Node : Irmin.Private.Node.Maker = struct
   module Make
-      (Hash : Irmin.Hash.S) (Path : sig
+      (Hash : Irmin.Hash.S)
+      (C : Irmin.Key.Abstract with type hash = Hash.t)
+      (N : Irmin.Key.Abstract with type hash = Hash.t) (Path : sig
         type step
 
         val step_t : step Irmin.Type.t
       end)
       (Metadata : Irmin.Metadata.S) =
   struct
-    module M = Irmin.Private.Node.Make (Hash) (Path) (Metadata)
+    module M = Irmin.Private.Node.Make (Hash) (C) (N) (Path) (Metadata)
 
     (* [V1] is only used to compute preimage hashes. [assert false]
        statements should be unreachable.*)
@@ -103,7 +105,7 @@ module Node : Irmin.Private.Node.Maker = struct
         match t with `Node _ -> None | `Contents (_, m) -> Some m
 
       let hash_of_entry (_, t) =
-        match t with `Node h -> h | `Contents (h, _) -> h
+        match t with `Node h -> N.hash h | `Contents (h, _) -> C.hash h
 
       (* Irmin 1.4 uses int64 to store list lengths *)
       let entry_t : entry Irmin.Type.t =
@@ -136,8 +138,12 @@ module Node : Irmin.Private.Node.Maker = struct
 end
 
 module Commit : Irmin.Private.Commit.Maker = struct
-  module Make (Hash : Irmin.Type.S) = struct
-    module M = Irmin.Private.Commit.Make (Hash)
+  module Make
+      (H : Irmin.Hash.S)
+      (N : Irmin.Key.Abstract with type hash = H.t)
+      (C : Irmin.Key.Abstract with type hash = H.t) =
+  struct
+    module M = Irmin.Private.Commit.Make (H) (N) (C)
     module V1 = Irmin.Private.Commit.V1 (M)
     include M
 
