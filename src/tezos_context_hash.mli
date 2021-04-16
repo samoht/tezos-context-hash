@@ -26,6 +26,7 @@
 module Encoding = Encoding
 module Conf : Irmin_pack.Conf.S
 open Encoding
+module Key : Irmin_pack.Key with type hash = Hash.t
 
 module Store : sig
   include
@@ -37,6 +38,9 @@ module Store : sig
        and type branch = Branch.t
        and type hash = Hash.t
        and type Private.Remote.endpoint = unit
+       and type contents_id = Key.t
+       and type node_id = Key.t
+       and type commit_id = Key.t
 
   val reconstruct_index : ?output:string -> Irmin.config -> unit
 end

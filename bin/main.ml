@@ -1,28 +1,27 @@
 open Tezos_context_hash
 open Encoding
-module Inter = Irmin_pack.Private.Inode.Make_internal (Conf) (Hash) (Node)
+module Node = Node.Make (Hash) (Key) (Key) (Path) (Metadata)
+module Inter = Irmin_pack.Inode.Make_internal (Conf) (Key) (Node)
 
 module Spec = struct
+  type hash = Hash.t [@@deriving irmin]
   type kind = Tree | Contents [@@deriving irmin]
-
-  type entry = { name : Node.step; kind : kind; hash : Node.hash }
-  [@@deriving irmin]
-
+  type entry = { name : Node.step; kind : kind; hash : hash } [@@deriving irmin]
   type inode = Inter.Val.Concrete.t [@@deriving irmin]
 
-  type node = { hash : Node.hash; bindings : entry list; inode : inode option }
+  type node = { hash : hash; bindings : entry list; inode : inode option }
   [@@deriving irmin]
 
   let entry (s, b) =
     match b with
-    | `Node h -> { name = s; kind = Tree; hash = h }
-    | `Contents (h, _) -> { name = s; kind = Contents; hash = h }
+    | `Node h -> { name = s; kind = Tree; hash = Key.hash h }
+    | `Contents (h, _) -> { name = s; kind = Contents; hash = Key.hash h }
 
-  let value e =
+  let value e : string * Node.value =
     ( e.name,
       match e.kind with
-      | Tree -> `Node e.hash
-      | Contents -> `Contents (e.hash, Metadata.default) )
+      | Tree -> `Node (Key.v e.hash)
+      | Contents -> `Contents (Key.v e.hash, Metadata.default) )
 
   let inode = Inter.Val.to_concrete
 
@@ -50,8 +49,8 @@ module Spec = struct
     | e -> failwith e
 end
 
-let contents x = `Contents (x, Metadata.default)
-let node x = `Node x
+let contents x = `Contents (Key.v x, Metadata.default)
+let node x = `Node (Key.v x)
 
 module Gen = struct
   let init = Random.init

@@ -36,4 +36,5 @@ module Conf = struct
 end
 
 module Maker = Irmin_pack.Maker_ext (V1) (Conf) (Node) (Commit)
+module Key = Maker.Key (Hash)
 module Store = Maker.Make (Metadata) (Contents) (Path) (Branch) (Hash)
